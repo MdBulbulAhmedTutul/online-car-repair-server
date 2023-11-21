@@ -28,10 +28,19 @@ async function run() {
 
         // OUR DB
         const servicesCollection = client.db('onlineCarRepair').collection('services');
+        const productsCollection = client.db('onlineCarRepair').collection('products');
 
         // all services data api
         app.get('/service', async(req, res) => {
             const cursor = servicesCollection.find();
+            const result = await cursor.toArray();
+            res.send(result);
+        })
+
+
+        // all products data api
+        app.get('/product', async(req, res) => {
+            const cursor = productsCollection.find();
             const result = await cursor.toArray();
             res.send(result);
         })
