@@ -29,6 +29,7 @@ async function run() {
         // OUR DB
         const servicesCollection = client.db('onlineCarRepair').collection('services');
         const productsCollection = client.db('onlineCarRepair').collection('products');
+        const teamCollection = client.db('onlineCarRepair').collection('teams');
 
         // all services data api
         app.get('/service', async(req, res) => {
@@ -41,6 +42,13 @@ async function run() {
         // all products data api
         app.get('/product', async(req, res) => {
             const cursor = productsCollection.find();
+            const result = await cursor.toArray();
+            res.send(result);
+        })
+
+        // all team data api
+        app.get('/team', async(req, res) => {
+            const cursor = teamCollection.find();
             const result = await cursor.toArray();
             res.send(result);
         })
