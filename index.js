@@ -27,7 +27,15 @@ async function run() {
     try {
 
         // OUR DB
-        
+        const servicesCollection = client.db('onlineCarRepair').collection('services');
+
+        // all services data api
+        app.get('/service', async(req, res) => {
+            const cursor = servicesCollection.find();
+            const result = await cursor.toArray();
+            res.send(result);
+        })
+
         await client.db("admin").command({ ping: 1 });
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
     } finally {
