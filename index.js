@@ -70,6 +70,26 @@ async function run() {
             res.send(result);
         })
 
+        // get the single person booking data api
+        app.get('/singlebooking', async (req, res) => {
+            // console.log(req.query.email);
+            let query = {};
+            if (req.query?.email) {
+                query = { email: req.query.email }
+            }
+            const cursor = bookingCollection.find(query);
+            const result = await cursor.toArray();
+            res.send(result);
+        })
+
+        // booking delete api
+        app.delete('/delete/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const result = await bookingCollection.deleteOne(query);
+            res.send(result);
+        })
+
         // post all booking data api
         app.post('/order', async (req, res) => {
             const booking = req.body;
