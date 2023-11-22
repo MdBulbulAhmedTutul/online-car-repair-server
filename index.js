@@ -9,9 +9,6 @@ const port = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
-
-
-
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.sq1fqp2.mongodb.net/?retryWrites=true&w=majority`;
 
 
@@ -30,6 +27,7 @@ async function run() {
         const servicesCollection = client.db('onlineCarRepair').collection('services');
         const productsCollection = client.db('onlineCarRepair').collection('products');
         const teamCollection = client.db('onlineCarRepair').collection('teams');
+        const bookingCollection = client.db('onlineCarRepair').collection('bookings');
 
         // all services data api
         app.get('/service', async (req, res) => {
@@ -51,7 +49,7 @@ async function run() {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) };
             const options = {
-                projection: {title: 1, img: 1, price: 1, service_id: 1},
+                projection: { title: 1, img: 1, price: 1, service_id: 1 },
             };
             const result = await servicesCollection.findOne(query, options);
             res.send(result)
@@ -69,6 +67,14 @@ async function run() {
         app.get('/team', async (req, res) => {
             const cursor = teamCollection.find();
             const result = await cursor.toArray();
+            res.send(result);
+        })
+
+        // post all booking data api
+        app.post('/order', async (req, res) => {
+            const booking = req.body;
+            // console.log(booking);
+            const result = await bookingCollection.insertOne(booking);
             res.send(result);
         })
 
