@@ -1,15 +1,22 @@
 const express = require('express');
+require('dotenv').config();
 const cors = require('cors');
+const jwt = require('jsonwebtoken');
+const cookiPerser = require('cookie-parser');
 const app = express();
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
-require('dotenv').config();
 const port = process.env.PORT || 5000;
 
-// DB_USER=online-car-repair
-// DB_PASS=NHh0iSbezLNuPyae
+
 // midleware
-app.use(cors());
+app.use(
+    cors({
+        origin: ['http://localhost:5173', 'https://enmmedia-19300.web.app'],
+        credentials: true,
+    }),
+)
 app.use(express.json());
+app.use(cookiPerser());
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.sq1fqp2.mongodb.net/?retryWrites=true&w=majority`;
 
@@ -30,6 +37,24 @@ async function run() {
         const productsCollection = client.db('onlineCarRepair').collection('products');
         const teamCollection = client.db('onlineCarRepair').collection('teams');
         const bookingCollection = client.db('onlineCarRepair').collection('bookings');
+
+
+        // auth related api
+        app.post('/jwt', async (req, res) => {
+            const user = req.body;
+            // console.log(user);
+            const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1h' })
+            res
+                .cookie('token', token, {
+                    httpOnly: true,
+                    secure: process.env.NODE_ENV === 'production',
+                    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
+                })
+                .send({
+                    status: true,
+                })
+        })
+
 
         // all services data api
         app.get('/service', async (req, res) => {
@@ -75,6 +100,7 @@ async function run() {
         // get the single person booking data api
         app.get('/singlebooking', async (req, res) => {
             // console.log(req.query.email);
+            // console.log('tok tok token', req.cookies.token)
             let query = {};
             if (req.query?.email) {
                 query = { email: req.query.email }
