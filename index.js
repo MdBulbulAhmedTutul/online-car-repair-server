@@ -5,6 +5,8 @@ const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 require('dotenv').config();
 const port = process.env.PORT || 5000;
 
+// DB_USER=online-car-repair
+// DB_PASS=NHh0iSbezLNuPyae
 // midleware
 app.use(cors());
 app.use(express.json());
