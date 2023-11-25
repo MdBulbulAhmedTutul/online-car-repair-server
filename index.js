@@ -29,6 +29,35 @@ const client = new MongoClient(uri, {
     }
 });
 
+// my midlewares
+const logger = async (req, res, next) => {
+    // console.log('called:', req.host, req.originalUrl);
+    next();
+}
+
+// veryfie token
+const verifyToken = async (req, res, next) => {
+    const token = req.cookies?.token;
+    console.log(token)
+    console.log('value of token in middleware', token);
+
+    if (!token) {
+        return res.status(401).send({ message: 'not authorized' })
+    }
+    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+        // error
+        if(err){
+            console.log(err);
+            return res.status(401).send({message: 'un authorized'})
+        }
+
+        // if token is valid decoded
+        console.log('value in the decoded', decoded);
+
+        next();
+    })
+}
+
 async function run() {
     try {
 
@@ -40,10 +69,10 @@ async function run() {
 
 
         // auth related api
-        app.post('/jwt', async (req, res) => {
+        app.post('/jwt', logger, async (req, res) => {
             const user = req.body;
             // console.log(user);
-            const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1h' })
+            const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET)
             res
                 .cookie('token', token, {
                     httpOnly: true,
@@ -57,14 +86,14 @@ async function run() {
 
 
         // all services data api
-        app.get('/service', async (req, res) => {
+        app.get('/service', logger, async (req, res) => {
             const cursor = servicesCollection.find();
             const result = await cursor.toArray();
             res.send(result);
         })
 
         // specific single services data api
-        app.get('/service/:id', async (req, res) => {
+        app.get('/service/:id', logger, async (req, res) => {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) };
             const result = await servicesCollection.findOne(query);
@@ -72,7 +101,7 @@ async function run() {
         })
 
         // options services data
-        app.get('/booking/:id', async (req, res) => {
+        app.get('/booking/:id', logger, async (req, res) => {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) };
             const options = {
@@ -84,23 +113,23 @@ async function run() {
 
 
         // all products data api
-        app.get('/product', async (req, res) => {
+        app.get('/product', logger, async (req, res) => {
             const cursor = productsCollection.find();
             const result = await cursor.toArray();
             res.send(result);
         })
 
         // all team data api
-        app.get('/team', async (req, res) => {
+        app.get('/team', logger, async (req, res) => {
             const cursor = teamCollection.find();
             const result = await cursor.toArray();
             res.send(result);
         })
 
         // get the single person booking data api
-        app.get('/singlebooking', async (req, res) => {
-            // console.log(req.query.email);
-            // console.log('tok tok token', req.cookies.token)
+        app.get('/singlebooking', logger, verifyToken, async (req, res) => {
+            console.log(req.query.email);
+            // console.log('tok tok token', req.cookies.token);
             let query = {};
             if (req.query?.email) {
                 query = { email: req.query.email }
@@ -111,7 +140,7 @@ async function run() {
         })
 
         // booking delete api
-        app.delete('/delete/:id', async (req, res) => {
+        app.delete('/delete/:id', logger, async (req, res) => {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) };
             const result = await bookingCollection.deleteOne(query);
@@ -119,7 +148,7 @@ async function run() {
         })
 
         // post all booking data api
-        app.post('/order', async (req, res) => {
+        app.post('/order', logger, async (req, res) => {
             const booking = req.body;
             // console.log(booking);
             const result = await bookingCollection.insertOne(booking);
@@ -127,7 +156,7 @@ async function run() {
         })
 
         // update booking data
-        app.patch('/delete/:id', async (req, res) => {
+        app.patch('/delete/:id', logger, async (req, res) => {
             const id = req.params.id;
             const filter = { _id: new ObjectId(id) };
             const updatedBooking = req.body;
