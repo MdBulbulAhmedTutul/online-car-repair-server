@@ -1,22 +1,20 @@
 const express = require('express');
 require('dotenv').config();
-const cors = require('cors');
 const jwt = require('jsonwebtoken');
-const cookiPerser = require('cookie-parser');
+const cors = require('cors');
 const app = express();
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const port = process.env.PORT || 5000;
 
 
 // midleware
-app.use(
-    cors({
-        origin: ['http://localhost:5173', 'https://enmmedia-19300.web.app'],
-        credentials: true,
-    }),
-)
+app.use(cors({
+    origin: [
+        'http://localhost:5173'
+    ],
+    credentials: true
+}))
 app.use(express.json());
-app.use(cookiPerser());
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.sq1fqp2.mongodb.net/?retryWrites=true&w=majority`;
 
@@ -29,35 +27,6 @@ const client = new MongoClient(uri, {
     }
 });
 
-// my midlewares
-const logger = async (req, res, next) => {
-    // console.log('called:', req.host, req.originalUrl);
-    next();
-}
-
-// veryfie token
-const verifyToken = async (req, res, next) => {
-    const token = req.cookies?.token;
-    console.log(token)
-    console.log('value of token in middleware', token);
-
-    if (!token) {
-        return res.status(401).send({ message: 'not authorized' })
-    }
-    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
-        // error
-        if(err){
-            console.log(err);
-            return res.status(401).send({message: 'un authorized'})
-        }
-
-        // if token is valid decoded
-        console.log('value in the decoded', decoded);
-
-        next();
-    })
-}
-
 async function run() {
     try {
 
@@ -67,33 +36,35 @@ async function run() {
         const teamCollection = client.db('onlineCarRepair').collection('teams');
         const bookingCollection = client.db('onlineCarRepair').collection('bookings');
 
-
-        // auth related api
-        app.post('/jwt', logger, async (req, res) => {
+        // auth Related api
+        app.post('/jwt', async(req, res) => {
             const user = req.body;
-            // console.log(user);
-            const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET)
+            console.log('user for token', user);
+            const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {expiresIn: '1h'});
             res
-                .cookie('token', token, {
-                    httpOnly: true,
-                    secure: process.env.NODE_ENV === 'production',
-                    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
-                })
-                .send({
-                    status: true,
-                })
+            .cookie('token', token, {
+                httpOnly: true,
+                secure: true,
+                sameSite: 'none'
+            })
+            .send({success: true});
         })
 
+        // logout user clear cokie
+        app.post('/logout', async(req, res) => {
+            const user = req.body;
+            res.clearCookie('token', {maxAge: 0}).send({success: true});
+        })
 
         // all services data api
-        app.get('/service', logger, async (req, res) => {
+        app.get('/service', async (req, res) => {
             const cursor = servicesCollection.find();
             const result = await cursor.toArray();
             res.send(result);
         })
 
         // specific single services data api
-        app.get('/service/:id', logger, async (req, res) => {
+        app.get('/service/:id', async (req, res) => {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) };
             const result = await servicesCollection.findOne(query);
@@ -101,7 +72,7 @@ async function run() {
         })
 
         // options services data
-        app.get('/booking/:id', logger, async (req, res) => {
+        app.get('/booking/:id', async (req, res) => {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) };
             const options = {
@@ -113,23 +84,21 @@ async function run() {
 
 
         // all products data api
-        app.get('/product', logger, async (req, res) => {
+        app.get('/product', async (req, res) => {
             const cursor = productsCollection.find();
             const result = await cursor.toArray();
             res.send(result);
         })
 
         // all team data api
-        app.get('/team', logger, async (req, res) => {
+        app.get('/team', async (req, res) => {
             const cursor = teamCollection.find();
             const result = await cursor.toArray();
             res.send(result);
         })
 
         // get the single person booking data api
-        app.get('/singlebooking', logger, verifyToken, async (req, res) => {
-            console.log(req.query.email);
-            // console.log('tok tok token', req.cookies.token);
+        app.get('/singlebooking', async (req, res) => {
             let query = {};
             if (req.query?.email) {
                 query = { email: req.query.email }
@@ -140,7 +109,7 @@ async function run() {
         })
 
         // booking delete api
-        app.delete('/delete/:id', logger, async (req, res) => {
+        app.delete('/delete/:id', async (req, res) => {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) };
             const result = await bookingCollection.deleteOne(query);
@@ -148,7 +117,7 @@ async function run() {
         })
 
         // post all booking data api
-        app.post('/order', logger, async (req, res) => {
+        app.post('/order', async (req, res) => {
             const booking = req.body;
             // console.log(booking);
             const result = await bookingCollection.insertOne(booking);
@@ -156,7 +125,7 @@ async function run() {
         })
 
         // update booking data
-        app.patch('/delete/:id', logger, async (req, res) => {
+        app.patch('/delete/:id', async (req, res) => {
             const id = req.params.id;
             const filter = { _id: new ObjectId(id) };
             const updatedBooking = req.body;
